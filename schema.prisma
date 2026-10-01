@@ -1,0 +1,78 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. Clientes de WalTech
+model Cliente {
+  id                  String         @id @default(uuid())
+  nombre              String         
+  identificacionFiscal String?       
+  direccion           String?
+  ciudad              String?
+  codigoPostal        String?
+  provincia           String?
+  pais                String?
+  telefono            String?
+  email               String?
+  fechaCreacion       DateTime       @default(now())
+  fechaActualizacion  DateTime       @updatedAt
+  presupuestos        Presupuesto[]
+  facturas            Factura[]
+}
+
+// 2. Presupuestos para Refrigeración y Electricidad
+model Presupuesto {
+  id                 String          @id @default(uuid())
+  numero             String          @unique 
+  fechaEmision       DateTime        @default(now())
+  fechaVencimiento   DateTime?
+  empresaEmisora     String          @default("WalTech")
+  terminosCondiciones String?        
+  metodoPago         String?        
+  estado             String          @default("PENDIENTE") // 👈 Cambiado de enum a String para SQLite
+  total              Float           @default(0.0)         // 👈 Cambiado de Decimal a Float para SQLite
+  clienteId          String
+  cliente            Cliente         @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  articulos          ArticuloDocumento[]
+  factura            Factura?        
+  fechaCreacion       DateTime        @default(now())
+  fechaActualizacion  DateTime        @updatedAt
+}
+
+// 3. Facturas
+model Factura {
+  id                 String          @id @default(uuid())
+  numero             String          @unique 
+  fechaEmision       DateTime        @default(now())
+  fechaVencimiento   DateTime?
+  empresaEmisora     String          @default("WalTech")
+  terminosCondiciones String?
+  metodoPago         String?
+  estadoPago         String          @default("NO_PAGADO") // 👈 Cambiado de enum a String para SQLite
+  total              Float           @default(0.0)         // 👈 Cambiado de Decimal a Float para SQLite
+  clienteId          String
+  cliente            Cliente         @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  presupuestoId      String?         @unique
+  presupuesto        Presupuesto?    @relation(fields: [presupuestoId], references: [id], onDelete: SetNull)
+  articulos          ArticuloDocumento[]
+  fechaCreacion       DateTime        @default(now())
+  fechaActualizacion  DateTime        @updatedAt
+}
+
+// 4. Detalle de artículos o servicios
+model ArticuloDocumento {
+  id            String       @id @default(uuid())
+  descripcion   String       
+  cantidad      Float        // 👈 Cambiado de Decimal a Float para SQLite
+  precioUnitario Float        // 👈 Cambiado de Decimal a Float para SQLite
+  subtotal      Float        // 👈 Cambiado de Decimal a Float para SQLite
+  presupuestoId String?
+  presupuesto   Presupuesto? @relation(fields: [presupuestoId], references: [id], onDelete: Cascade)
+  facturaId     String?
+  factura       Factura?     @relation(fields: [facturaId], references: [id], onDelete: Cascade)
+}
